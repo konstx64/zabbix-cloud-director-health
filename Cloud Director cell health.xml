@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zabbix_export>
+    <version>7.0</version>
+    <template_groups>
+        <template_group>
+            <uuid>a571c0d144b14fd4a87a9d9b2aa9fcd6</uuid>
+            <name>Templates/Applications</name>
+        </template_group>
+    </template_groups>
+    <templates>
+        <template>
+            <uuid>af9524d09cdf499aa9cc27de46702b3c</uuid>
+            <template>Cloud Director cell health</template>
+            <name>Cloud Director cell health</name>
+            <description>Templates monitor overall status of  Cloud Director</description>
+            <groups>
+                <group>
+                    <name>Templates/Applications</name>
+                </group>
+            </groups>
+            <items>
+                <item>
+                    <uuid>5b303cdf6235438c85b553c0778f9d8e</uuid>
+                    <name>check cluster health</name>
+                    <type>HTTP_AGENT</type>
+                    <key>check_cluster_health</key>
+                    <delay>5m</delay>
+                    <history>90d</history>
+                    <authtype>BASIC</authtype>
+                    <username>{$CELL.USERNAME}</username>
+                    <password>{$CELL.PASSWORD}</password>
+                    <valuemap>
+                        <name>possible states</name>
+                    </valuemap>
+                    <preprocessing>
+                        <step>
+                            <type>JAVASCRIPT</type>
+                            <parameters>
+                                <parameter>var obj = JSON.parse(value);
+// Convert status to a number based on a map
+var stat = obj.body.localClusterHealth;
+var statusMap = {
+    &quot;HEALTHY&quot; : 0,
+    &quot;DEGRADED&quot; : 1,
+    &quot;READ_ONLY_PRIMARY&quot; : 2,
+    &quot;NO_ACTIVE_PRIMARY&quot; : 3,
+    &quot;CRITICAL_PROBLEM&quot; : 4,
+    &quot;SSH_PROBLEM&quot; : 5
+};
+if (stat in statusMap) {
+    // Known status
+    stat = statusMap[stat];
+} else {
+    // Unknown status
+    throw &quot;Unknown status: &quot; + stat;
+}
+return stat;</parameter>
+                            </parameters>
+                        </step>
+                    </preprocessing>
+                    <timeout>1m</timeout>
+                    <url>https://{$CELL.IP}:5480/api/1.0.0/nodes</url>
+                    <output_format>JSON</output_format>
+                    <triggers>
+                        <trigger>
+                            <uuid>1c29d667e05f4a3ab7b64dfaf8c19562</uuid>
+                            <expression>min(/Cloud Director cell health/check_cluster_health,#5)&gt;0</expression>
+                            <recovery_mode>RECOVERY_EXPRESSION</recovery_mode>
+                            <recovery_expression>min(/Cloud Director cell health/check_cluster_health,#5)=0</recovery_expression>
+                            <name>Cluster Health from cell {HOST.NAME}</name>
+                            <opdata>{ITEM.LASTVALUE1}</opdata>
+                            <priority>AVERAGE</priority>
+                            <manual_close>YES</manual_close>
+                        </trigger>
+                    </triggers>
+                </item>
+            </items>
+            <tags>
+                <tag>
+                    <tag>class</tag>
+                    <value>software</value>
+                </tag>
+                <tag>
+                    <tag>target</tag>
+                    <value>vmware</value>
+                </tag>
+            </tags>
+            <macros>
+                <macro>
+                    <macro>{$CELL.IP}</macro>
+                </macro>
+                <macro>
+                    <macro>{$CELL.PASSWORD}</macro>
+                </macro>
+                <macro>
+                    <macro>{$CELL.USERNAME}</macro>
+                </macro>
+            </macros>
+            <valuemaps>
+                <valuemap>
+                    <uuid>53204be10ccc4075afecc79960c03b4d</uuid>
+                    <name>possible states</name>
+                    <mappings>
+                        <mapping>
+                            <value>0</value>
+                            <newvalue>HEALTHY</newvalue>
+                        </mapping>
+                        <mapping>
+                            <value>1</value>
+                            <newvalue>DEGRADED</newvalue>
+                        </mapping>
+                        <mapping>
+                            <value>2</value>
+                            <newvalue>READ_ONLY_PRIMARY</newvalue>
+                        </mapping>
+                        <mapping>
+                            <value>3</value>
+                            <newvalue>NO_ACTIVE_PRIMARY</newvalue>
+                        </mapping>
+                        <mapping>
+                            <value>4</value>
+                            <newvalue>CRITICAL_PROBLEM</newvalue>
+                        </mapping>
+                        <mapping>
+                            <value>5</value>
+                            <newvalue>SSH_PROBLEM</newvalue>
+                        </mapping>
+                    </mappings>
+                </valuemap>
+            </valuemaps>
+        </template>
+    </templates>
+</zabbix_export>
